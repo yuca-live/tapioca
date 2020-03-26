@@ -1,15 +1,10 @@
-const token = process.env.SLACK_APP_CODE;
-
+const token = process.env.SLACK_APP_CODE || 'xoxb-781443478864-1028546596837-gVXYNlqiYOq5SsJmHP5r0l05';
 const Slack = require('slack');
-
 const bot = new Slack({ token });
-
-const GROUP_SIZE = process.env.SLACK_SIZE;
-
-const CHANNEL_NAME = process.env.CHANNEL_NAME;
-
-let DEFAULT_MESSAGE = 'Esse isolamento tá pegando né?!\n';
-DEFAULT_MESSAGE += 'Vamos fazer um hangouts, tomar um café :coffee: juntos e jogar uns 15 minutinhos :clock3: de conversa fora?\n';
+const GROUP_SIZE = process.env.SLACK_SIZE || 1;
+const CHANNEL_NAME = process.env.CHANNEL_NAME || 'tapioca';
+let DEFAULT_MESSAGE = 'Don’t let social distancing bring you down. Catch up with your team, '
+  + 'feel all warm and fuzzy inside over Tapioca.';
 
 const getRandom = (array) => {
   if (array.length) {
@@ -26,7 +21,7 @@ const getRandomUser = (usersArray) => {
   return { id, real_name };
 };
 
-exports.handler = async (event) => {
+exports.handler = async () => {
   await bot
     .channels
     .list()
@@ -34,9 +29,9 @@ exports.handler = async (event) => {
       if (data.ok) {
         return data.channels.find((c) => c.name === CHANNEL_NAME);
       }
-      throw new Error('could not find donut channel');
+      throw new Error('could not find tapioca channel');
     })
-    .then((donutChannel) => bot.conversations.members({ channel: donutChannel.id }))
+    .then((tapiocaChannel) => bot.conversations.members({ channel: tapiocaChannel.id }))
     .then((data) => {
       if (data.ok) {
         return Promise.all(data.members.map((user) => bot.users.info({ user })));
