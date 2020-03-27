@@ -21,4 +21,4 @@ const conversationStarters = [
 
 module.exports = {
   conversationStarters,
-}
+};
