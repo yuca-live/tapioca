@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/yuca-live/tapioca"
@@ -16,6 +15,7 @@
   },
   "homepage": "https://github.com/yuca-live/tapioca#readme",
   "dependencies": {
+    "aws-sdk": "^2.647.0",
     "slack": "^11.0.2"
   },
   "devDependencies": {
