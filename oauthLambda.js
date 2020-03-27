@@ -29,6 +29,9 @@ const getTokensFile = async () => {
 const putToTokensFile = async (body) => {
   console.log(`Getting ${S3_TOKENS_FILE} file on S3`);
   const tokenFiles = await getTokensFile();
+  if (!tokenFiles) {
+    throw new Error('Could not get token file');
+  }
   tokenFiles.push(body);
   const params = {
     Bucket: S3_BUCKET,
@@ -77,6 +80,7 @@ exports.handler = async (event, context, callback) => {
       tokensData = {
         channelId: channel.id,
         accessToken: body.access_token,
+        teamId: body.team.id,
       };
     }
     await putToTokensFile(tokensData);

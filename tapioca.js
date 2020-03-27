@@ -1,30 +1,27 @@
 const Slack = require('slack');
 const AWS = require('aws-sdk');
-const { conversationStarters } = require('./constants');
+const { conversationStarters, defaultMessage } = require('./constants');
 
 const GROUP_SIZE = process.env.SLACK_SIZE;
-let DEFAULT_MESSAGE = '*Don’t let social distancing bring you down. Catch up with your team, '
-  + 'feel all warm and fuzzy inside over Tapioca.*';
 
-const getCurrentCredentialsFile = () => {
+const getCurrentCredentialsFile = async () => {
   const s3 = new AWS.S3({
     accessKeyId: process.env.S3_ACCESS_KEY_ID,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   });
 
   try {
-
     const params = {
       Bucket: 'tapioca-time',
       Key: 'tapioca-tokens.json',
     };
 
-    const data = await s3.getObject(params).promise()
+    const data = await s3.getObject(params).promise();
     const fileContents = JSON.parse(data.Body.toString('utf-8'));
     return fileContents;
-
   } catch (e) {
-    console.error(e)
+    console.error(e);
+    return null;
   }
 };
 
@@ -40,23 +37,23 @@ const getRandom = (array) => {
 
 const getRandomUser = (usersArray) => {
   const user = getRandom(usersArray);
-  const { id, real_name } = user;
-  return { id, real_name };
+  const { id, real_name, locale } = user;
+  return { id, real_name, locale };
 };
 
 const getUsersFromChannel = async (slack, channelId) => {
-  const membersData = await bot.conversations.members({ channel: channelId })
+  const membersData = await slack.conversations.members({ channel: channelId });
   if (!membersData.ok) {
     throw new Error('could not find channel members');
   }
-  const usersData = await Promise.all(membersData.members.map((user) => bot.users.info({ user })));
+  const usersData = await Promise.all(membersData.members.map((user) => slack.users.info({ user, include_locale: true })));
   const users = usersData.map((dataRow) => dataRow.user).filter((user) => !user.is_bot);
   return users;
 }
 
 const getLeftBehindPeople = (users) => {
   const leftBehindPeople = [];
-  const remainingPeople = users.length % GROUP_SIZE;  
+  const remainingPeople = users.length % GROUP_SIZE;
   for (let i = 0; i < remainingPeople; i++) {
     leftBehindPeople.push(getRandomUser(users));
   }
@@ -80,34 +77,47 @@ const createConversationAndPostMessage = async (slack, group, leftBehindPeople) 
     group.push(leftBehindPeople.shift());
   }
 
+  console.log('HANDLING GROUP ', group);
   const userIds = group.map((user) => user.id).join(',');
-  const conversationData = await slack.conversations.open({ users: userIds })
+  const { locale } = group[0];
+  console.log('CREATE CONVERSATION WITH USERS: ', userIds);
+  const conversationData = await slack.conversations.open({ users: userIds });
   if (!conversationData.ok) {
     throw new Error('could not open conversation');
   }
   const channelId = conversationData.channel.id;
-  const text = DEFAULT_MESSAGE;
-  const attachments = [{ "text": getRandom(conversationStarters) }];
-  return slack.chat.postMessage({ channel: channelId, text, attachments });
+  const text = defaultMessage[locale] || defaultMessage.default;
+  const localizedMessages = conversationStarters[locale] || conversationStarters.default;
+  const attachments = [{ text: getRandom(localizedMessages) }];
+  console.log('SEND MESSAGE');
+  return slack.chat.postMessage({ channel: channelId, text, attachments })
+    .then((postResult) => console.log(postResult));
 }
 
 exports.handler = async () => {
 
-  console.log('DefaultMessage', DEFAULT_MESSAGE);
+  const handledTeams = {};
+  const teamTokens = await getCurrentCredentialsFile();
+  if (!teamTokens) {
+    throw new Error('Could not get Tokens file');
+  }
+  console.log('TEAM TOKENS', teamTokens);
 
-  const companiesTokens = await getCurrentCredentialsFile()
-  console.log('COMPANY TOKENS', companiesTokens);
-
-  return companiesTokens && companiesTokens.map( async (companyData) => {
+  return teamTokens && Promise.all(teamTokens.map(async (teamData) => {
     try {
-      console.log('HANDLING COMPANY: ', companyData);
-      const slack = new Slack({ token: companyData.accessToken });
-      const users = await getUsersFromChannel(slack, company.channelId);
+      if (handledTeams[teamData.teamId]) {
+        return null;
+      }
+      console.log('HANDLING TEAM: ', teamData);
+      const slack = new Slack({ token: teamData.accessToken });
+      const users = await getUsersFromChannel(slack, teamData.channelId);
       const leftBehindPeople = getLeftBehindPeople(users);
       const allGroups = createUsersGroups(users);
-      return allGroups.map( (group) => createConversationAndPostMessage(slack, group, leftBehindPeople) );
+      handledTeams[teamData.teamId] = true;
+      return Promise.all(allGroups.map((group) => createConversationAndPostMessage(slack, group, leftBehindPeople)));
     } catch (e) {
-      console.error(e)
+      console.error(e);
+      return null;
     }
-  });
+  }));
 };
