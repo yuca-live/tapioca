@@ -3,14 +3,14 @@ const request = require('request-promise-native');
 const AWS = require('aws-sdk');
 // S3 configs
 const s3 = new AWS.S3({
-  accessKeyId: 'AKIAWX7WCPGNIU7XYJID',
-  secretAccessKey: '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',
+  accessKeyId: process.env.S3_ACCESS_KEY_ID,
+  secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
 });
 const S3_BUCKET = 'tapioca-time';
 const S3_TOKENS_FILE = 'tapioca-tokens.json';
 // SLACK configs
-const appClientId = process.env.APP_CLIENT_ID || '781443478864.1030390384566';
-const appClientSecret = process.env.APP_CLIENT_SECRET || '09186aabb0f4e60d46934a76392a6d28';
+const appClientId = process.env.APP_CLIENT_ID;
+const appClientSecret = process.env.APP_CLIENT_SECRET;
 const tapiocaChannelName = 'tapioca-time';
 
 

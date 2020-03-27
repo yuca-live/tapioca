@@ -2,25 +2,21 @@ const Slack = require('slack');
 const AWS = require('aws-sdk');
 const { conversationStarters } = require('./constants');
 
-const GROUP_SIZE = process.env.SLACK_SIZE || 3;
+const GROUP_SIZE = process.env.SLACK_SIZE;
 let DEFAULT_MESSAGE = '*Don’t let social distancing bring you down. Catch up with your team, '
   + 'feel all warm and fuzzy inside over Tapioca.*';
 
 const getCurrentCredentialsFile = () => {
-  console.log('A');
   const s3 = new AWS.S3({
-    accessKeyId: 'AKIAWX7WCPGNIU7XYJID',
-    secretAccessKey: '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',
+    accessKeyId: process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   });
-  console.log('B');
 
   try {
     const params = {
       Bucket: 'tapioca-time',
       Key: 'tapioca-tokens.json',
     };
-
-    console.log('C');
 
     return s3.getObject(params).promise().then(
       (data) => {
@@ -29,7 +25,6 @@ const getCurrentCredentialsFile = () => {
       },
     );
   } catch (e) {
-    console.log('EITA LASCOU TUDO', e);
     return { error: 'deu ruim', e };
   }
 };
@@ -62,17 +57,12 @@ exports.handler = async () => {
       const bot = new Slack({ token: companyData.accessToken });
       return bot.conversations.members({ channel: companyData.channelId })
         .then((data) => {
-          console.log('D');
-
           if (data.ok) {
-            console.log('E');
             return Promise.all(data.members.map((user) => bot.users.info({ user })));
           }
-          console.log('F');
           throw new Error('could not find channel members');
         })
         .then((data) => {
-          console.log('G');
           const users = data.map((dataRow) => dataRow.user).filter((user) => !user.is_bot);
 
           const remainingPeople = users.length % GROUP_SIZE;
