@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion : '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Globals:
@@ -11,6 +11,16 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: tapioca.handler
+      Runtime: nodejs12.x
+  HealthCheck:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: healthLambda.handler
+      Runtime: nodejs12.x
+  Oauth:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: oauthLambda.handler
       Runtime: nodejs12.x
 
 
