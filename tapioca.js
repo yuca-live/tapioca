@@ -46,7 +46,7 @@ const getUsersFromChannel = async (slack, channelId) => {
   if (!membersData.ok) {
     throw new Error('could not find channel members');
   }
-  const usersData = await Promise.all(membersData.members.map((user) => slack.users.info({ user, include_locale: true })));
+  const usersData = await Promise.all(membersData.members.map(async (user) => slack.users.info({ user, include_locale: true })));
   const users = usersData.map((dataRow) => dataRow.user).filter((user) => !user.is_bot);
   return users;
 }
@@ -90,8 +90,7 @@ const createConversationAndPostMessage = async (slack, group, leftBehindPeople) 
   const localizedMessages = conversationStarters[locale] || conversationStarters.default;
   const attachments = [{ text: getRandom(localizedMessages) }];
   console.log('SEND MESSAGE');
-  return slack.chat.postMessage({ channel: channelId, text, attachments })
-    .then((postResult) => console.log(postResult));
+  return slack.chat.postMessage({ channel: channelId, text, attachments }).then((postResult) => console.log(postResult));
 }
 
 exports.handler = async () => {
@@ -101,9 +100,13 @@ exports.handler = async () => {
   if (!teamTokens) {
     throw new Error('Could not get Tokens file');
   }
+  const uniqueTokens = {};
+  teamTokens.forEach( (token) => {
+    uniqueTokens[token.teamId] = token;
+  });
   console.log('TEAM TOKENS', teamTokens);
 
-  return teamTokens && Promise.all(teamTokens.map(async (teamData) => {
+  return Promise.all(Object.values(uniqueTokens).map(async (teamData) => {
     try {
       if (handledTeams[teamData.teamId]) {
         return null;
