@@ -5,7 +5,7 @@
   "httpMethod": "POST",
   "isBase64Encoded": false,
   "queryStringParameters": {
-    "code": "345796842786.1029701018916.8cdde59186183463989950cc44e3efce20408d374bf37bbbfab767f75ecba4da",
+    "code": "PUT YOUR JWT CODE HERE",
     "state": ""
   },
   "pathParameters": {

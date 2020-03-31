@@ -3,19 +3,13 @@ Transform: AWS::Serverless-2016-10-31
 
 Globals:
   Function:
-    Timeout: 3000
-
+    Timeout: 3
 
 Resources:
-  TapiocaFunction:
+  Tapioca:
     Type: AWS::Serverless::Function
     Properties:
       Handler: tapioca.handler
-      Runtime: nodejs12.x
-  HealthCheck:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: healthLambda.handler
       Runtime: nodejs12.x
   Oauth:
     Type: AWS::Serverless::Function
@@ -23,8 +17,8 @@ Resources:
       Handler: oauthLambda.handler
       Runtime: nodejs12.x
 
-
 Outputs:
-  TapiocaFunction:
-    Description: "Some nice description"
+  Tapioca:
+    Description: "Tapioca is an Slack APP that make conversations with group of random people in
+ your organization to help them interact with each other"
 
