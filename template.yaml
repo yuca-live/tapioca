@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 3000
+
+
+Resources:
+  TapiocaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: tapioca.handler
+      Runtime: nodejs12.x
+  HealthCheck:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: healthLambda.handler
+      Runtime: nodejs12.x
+  Oauth:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: oauthLambda.handler
+      Runtime: nodejs12.x
+
+
+Outputs:
+  TapiocaFunction:
+    Description: "Some nice description"
+
