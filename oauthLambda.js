@@ -76,7 +76,7 @@ exports.handler = async (event, context, callback) => {
       }
       tokensData.channelId = channelReqData.channel.id;
     } catch (error) {
-      const channelsListReqData = await slack.channels.list();
+      const channelsListReqData = await slack.channels.list({ limit: 1000 });
       if (!channelsListReqData.ok) {
         throw new Error('could not list channels');
       }
