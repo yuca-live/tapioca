@@ -2,7 +2,7 @@ const Slack = require('slack');
 const AWS = require('aws-sdk');
 const { conversationStarters, defaultMessage } = require('./constants');
 
-const GROUP_SIZE = process.env.SLACK_SIZE;
+const GROUP_SIZE = parseInt(process.env.SLACK_SIZE);
 
 const getCurrentCredentialsFile = async () => {
   const s3 = new AWS.S3({
@@ -49,7 +49,7 @@ const getUsersFromChannel = async (slack, channelId) => {
   const usersData = await Promise.all(membersData.members.map(async (user) => slack.users.info({ user, include_locale: true })));
   const users = usersData.map((dataRow) => dataRow.user).filter((user) => !user.is_bot);
   return users;
-}
+};
 
 const getLeftBehindPeople = (users) => {
   const leftBehindPeople = [];
@@ -58,19 +58,55 @@ const getLeftBehindPeople = (users) => {
     leftBehindPeople.push(getRandomUser(users));
   }
   return leftBehindPeople;
-}
+};
+
+const shuffle = (originalArray) => {
+  // https://stackoverflow.com/a/2450976
+  const array = [...originalArray];
+  let currentIndex = array.length;
+  let temporaryValue;
+  let randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+};
 
 const createUsersGroups = (users) => {
-  const allGroups = [];
-  while (users.length) {
-    const group = [];
-    for (let i = 0; i < GROUP_SIZE; i++) {
-      group.push(getRandomUser(users));
-    }
-    allGroups.push(group);
+  const groups = [];
+  const shuffledUsers = shuffle(users);
+  const groupsCount = shuffledUsers.length / GROUP_SIZE;
+  const remainder = shuffledUsers.length % GROUP_SIZE;
+
+  let startIndex = 0;
+  let endIndex = 0;
+  for (let i = 0; i < groupsCount; i += 1) {
+    startIndex = i * GROUP_SIZE;
+    endIndex = startIndex + GROUP_SIZE;
+    groups.push(shuffledUsers.slice(startIndex, endIndex));
   }
-  return allGroups;
-}
+
+  // Assign each of remainder users on a different group.
+  if (remainder > 0) {
+    // user on endIndex position was already used on the last group, so we move to the next one.
+    endIndex += 1;
+    for (let i = 0; i < remainder; i += 1) {
+      groups[i].push(endIndex + i);
+    }
+  }
+
+  return groups;
+};
 
 const createConversationAndPostMessage = async (slack, group, leftBehindPeople) => {
   if (leftBehindPeople.length) {
@@ -101,7 +137,7 @@ exports.handler = async () => {
     throw new Error('Could not get Tokens file');
   }
   const uniqueTokens = {};
-  teamTokens.forEach( (token) => {
+  teamTokens.forEach((token) => {
     uniqueTokens[token.teamId] = token;
   });
   console.log('TEAM TOKENS', teamTokens);
