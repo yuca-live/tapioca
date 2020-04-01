@@ -71,7 +71,10 @@ exports.handler = async (event, context, callback) => {
     };
     try {
       const channelReqData = await slack.conversations.create({ name: tapiocaChannelName });
-      tokensData.channelId = channelReqData.channelId;
+      if (!channelReqData.ok) {
+        throw new Error('could not create channel');
+      }
+      tokensData.channelId = channelReqData.channel.id;
     } catch (error) {
       const channelsListReqData = await slack.channels.list();
       if (!channelsListReqData.ok) {
