@@ -90,4 +90,4 @@ If you want to make this tool even more awesome, please check [CONTRIBUTING](CON
 # License
 We use [MIT License](https://choosealicense.com/licenses/mit/) and any contribution to this project will automatically accept this license. 
 
-Please, check our [LICENSE](LICENSE.md) file for more information.
+Please, check our [LICENSE](LICENSE.txt) file for more information.
