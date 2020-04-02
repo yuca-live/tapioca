@@ -9,7 +9,7 @@ Resources:
   Tapioca:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: tapioca.handler
+      Handler: tapiocaLambda.handler
       Runtime: nodejs12.x
   Oauth:
     Type: AWS::Serverless::Function
