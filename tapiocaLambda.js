@@ -12,8 +12,8 @@ const getCurrentCredentialsFile = async () => {
 
   try {
     const params = {
-      Bucket: 'tapioca-time',
-      Key: 'tapioca-tokens.json',
+      Bucket: process.env.BUCKET_NAME,
+      Key: process.env.BUCKET_FILE_NAME,
     };
 
     const data = await s3.getObject(params).promise();
