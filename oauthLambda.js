@@ -65,24 +65,26 @@ exports.handler = async (event, context, callback) => {
     });
     const body = JSON.parse(oauthResult);
     const slack = new Slack({ token: body.access_token });
-    let tokensData = {};
+    const tokensData = {
+      accessToken: body.access_token,
+      teamId: body.team.id,
+    };
     try {
       const channelReqData = await slack.conversations.create({ name: tapiocaChannelName });
-      tokensData = {
-        channelId: channelReqData.channelId,
-        accessToken: body.access_token,
-      };
+      if (!channelReqData.ok) {
+        throw new Error('could not create channel');
+      }
+      tokensData.channelId = channelReqData.channel.id;
     } catch (error) {
-      const channelsListReqData = await slack.channels.list();
+      const channelsListReqData = await slack.channels.list({ limit: 1000 });
       if (!channelsListReqData.ok) {
-        throw new Error('could not find donut channel');
+        throw new Error('could not list channels');
       }
       const channel = channelsListReqData.channels.find((c) => c.name === tapiocaChannelName);
-      tokensData = {
-        channelId: channel.id,
-        accessToken: body.access_token,
-        teamId: body.team.id,
-      };
+      if (!channel) {
+        throw new Error('could not find donut channel');
+      }
+      tokensData.channelId = channel.id;
     }
     await putToTokensFile(tokensData);
     const response = {
