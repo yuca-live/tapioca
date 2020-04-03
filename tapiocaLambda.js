@@ -86,7 +86,7 @@ const createUsersGroups = (users) => {
     // user on endIndex position was already used on the last group, so we move to the next one.
     endIndex += 1;
     for (let i = 0; i < remainder; i += 1) {
-      groups[i].push(endIndex + i);
+      groups[i].push(shuffledUsers[endIndex + i]);
     }
   }
 
