@@ -68,6 +68,8 @@ exports.handler = async (event, context, callback) => {
     const tokensData = {
       accessToken: body.access_token,
       teamId: body.team.id,
+      teamName: body.team.name,
+      createdAt: (new Date()).toISOString(),
     };
     try {
       const channelReqData = await slack.conversations.create({ name: tapiocaChannelName });
