@@ -93,17 +93,15 @@ exports.handler = async (event, context, callback) => {
       statusCode: 301,
       headers: {
         Location: successTapiocaPageRedirect,
-      }
+      },
     };
     return callback(null, response);
   } catch (error) {
-    console.error('ERROR', error);
-    console.error('ERROR MESSAGE', error.message);
     const response = {
       statusCode: 500,
       headers: {
         Location: failtTapiocaPageRedirect,
-      }
+      },
     };
     return callback(null, response);
   }

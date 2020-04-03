@@ -2,7 +2,7 @@ const Slack = require('slack');
 const AWS = require('aws-sdk');
 const { conversationStarters, defaultMessage } = require('./constants');
 
-const GROUP_SIZE = parseInt(process.env.SLACK_SIZE);
+const GROUP_SIZE = parseInt(process.env.SLACK_SIZE, 10);
 
 const getCurrentCredentialsFile = async () => {
   const s3 = new AWS.S3({
@@ -25,39 +25,23 @@ const getCurrentCredentialsFile = async () => {
   }
 };
 
-
 const getRandom = (array) => {
-  if (array.length) {
-    const randomNumber = Math.random() * 10000;
-    const cutIndex = Math.floor((Math.random() * randomNumber) % array.length);
-    return array.splice(cutIndex, 1)[0];
-  }
-  return {};
-};
-
-const getRandomUser = (usersArray) => {
-  const user = getRandom(usersArray);
-  const { id, real_name, locale } = user;
-  return { id, real_name, locale };
+  const randomIndex = Math.floor(Math.random() * array.length);
+  return array[randomIndex];
 };
 
 const getUsersFromChannel = async (slack, channelId) => {
+  console.info(`getUsersFromChannel loading users from channelId=${channelId}`);
   const membersData = await slack.conversations.members({ channel: channelId });
   if (!membersData.ok) {
-    throw new Error('could not find channel members');
+    throw new Error(`could not find members for channelId=${channelId}`);
   }
-  const usersData = await Promise.all(membersData.members.map(async (user) => slack.users.info({ user, include_locale: true })));
-  const users = usersData.map((dataRow) => dataRow.user).filter((user) => !user.is_bot);
-  return users;
-};
-
-const getLeftBehindPeople = (users) => {
-  const leftBehindPeople = [];
-  const remainingPeople = users.length % GROUP_SIZE;
-  for (let i = 0; i < remainingPeople; i++) {
-    leftBehindPeople.push(getRandomUser(users));
-  }
-  return leftBehindPeople;
+  const usersData = await Promise.all(membersData.members.map(async (user) => {
+    console.info(`getUsersFromChannel loading data for userId=${user}`);
+    return slack.users.info({ user, include_locale: true });
+  }));
+  const usersOnly = usersData.map((dataRow) => dataRow.user).filter((user) => !user.is_bot);
+  return usersOnly;
 };
 
 const shuffle = (originalArray) => {
@@ -68,7 +52,7 @@ const shuffle = (originalArray) => {
   let randomIndex;
 
   // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
+  while (currentIndex !== 0) {
     // Pick a remaining element...
     randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex -= 1;
@@ -85,9 +69,9 @@ const shuffle = (originalArray) => {
 const createUsersGroups = (users) => {
   const groups = [];
   const shuffledUsers = shuffle(users);
-  const groupsCount = shuffledUsers.length / GROUP_SIZE;
-  const remainder = shuffledUsers.length % GROUP_SIZE;
 
+  const groupsCount = Math.floor(shuffledUsers.length / GROUP_SIZE);
+  const remainder = shuffledUsers.length % GROUP_SIZE;
   let startIndex = 0;
   let endIndex = 0;
   for (let i = 0; i < groupsCount; i += 1) {
@@ -98,25 +82,18 @@ const createUsersGroups = (users) => {
 
   // Assign each of remainder users on a different group.
   if (remainder > 0) {
-    // user on endIndex position was already used on the last group, so we move to the next one.
-    endIndex += 1;
     for (let i = 0; i < remainder; i += 1) {
-      groups[i].push(endIndex + i);
+      groups[i].push(shuffledUsers[endIndex + i]);
     }
   }
 
   return groups;
 };
 
-const createConversationAndPostMessage = async (slack, group, leftBehindPeople) => {
-  if (leftBehindPeople.length) {
-    group.push(leftBehindPeople.shift());
-  }
-
-  console.log('HANDLING GROUP ', group);
+const createConversationAndPostMessage = async (slack, group) => {
   const userIds = group.map((user) => user.id).join(',');
   const { locale } = group[0];
-  console.log('CREATE CONVERSATION WITH USERS: ', userIds);
+  console.info(`createConversationAndPostMessage creating conversation with users=${userIds}`);
   const conversationData = await slack.conversations.open({ users: userIds });
   if (!conversationData.ok) {
     throw new Error('could not open conversation');
@@ -125,38 +102,50 @@ const createConversationAndPostMessage = async (slack, group, leftBehindPeople) 
   const text = defaultMessage[locale] || defaultMessage.default;
   const localizedMessages = conversationStarters[locale] || conversationStarters.default;
   const attachments = [{ text: getRandom(localizedMessages) }];
-  console.log('SEND MESSAGE');
-  return slack.chat.postMessage({ channel: channelId, text, attachments }).then((postResult) => console.log(postResult));
-}
+  console.info(`createConversationAndPostMessage sending message=${JSON.stringify(attachments)}, for users=${userIds}`);
+  return slack.chat.postMessage({ channel: channelId, text, attachments })
+    .then((postResult) => console.info('createConversationAndPostMessage slack postMessage result=', JSON.stringify(postResult)))
+    .catch((e) => console.error(`createConversationAndPostMessage could not create conversation for group=${JSON.stringify(group)}`, e));
+};
 
 exports.handler = async () => {
-
+  console.info('handler tapioca conversation maker started.');
   const handledTeams = {};
   const teamTokens = await getCurrentCredentialsFile();
   if (!teamTokens) {
-    throw new Error('Could not get Tokens file');
+    throw new Error('Could not get Tokens file. Aborting.');
   }
+
   const uniqueTokens = {};
   teamTokens.forEach((token) => {
     uniqueTokens[token.teamId] = token;
   });
-  console.log('TEAM TOKENS', teamTokens);
 
-  return Promise.all(Object.values(uniqueTokens).map(async (teamData) => {
+  console.info(`handler teamTokens loaded successfully, size=${teamTokens.length}, unique=${Object.keys(uniqueTokens).length}`);
+
+  const jobs = Object.values(uniqueTokens).map(async (teamData) => {
     try {
       if (handledTeams[teamData.teamId]) {
+        console.info(`handler teamId=${teamData.teamId} already handled. Ignoring`);
         return null;
       }
-      console.log('HANDLING TEAM: ', teamData);
+      console.info(`handler running for team=${JSON.stringify(teamData)}`);
       const slack = new Slack({ token: teamData.accessToken });
       const users = await getUsersFromChannel(slack, teamData.channelId);
-      const leftBehindPeople = getLeftBehindPeople(users);
       const allGroups = createUsersGroups(users);
+      console.info(`handler team=${teamData.teamId} has usersCount=${users.length} into groupsCount=${allGroups.length}`
+        + ` groupSize=${GROUP_SIZE}`);
       handledTeams[teamData.teamId] = true;
-      return Promise.all(allGroups.map((group) => createConversationAndPostMessage(slack, group, leftBehindPeople)));
+      const groupJobs = allGroups.map((group) => createConversationAndPostMessage(slack, group));
+      return Promise.all(groupJobs)
+        .catch((e) => console.error(`handler could not handle correctly teamId=${teamData.teamId}`, e));
     } catch (e) {
-      console.error(e);
-      return null;
+      console.error(`handler could not run for teamData=${JSON.stringify(teamData)}`, e);
+      return Promise.resolve(); // As we use a promise all, even if a group has failed it cannot return Promise.reject.
     }
-  }));
+  });
+
+  return Promise.all(jobs)
+    .catch((e) => console.error('Something unexpected happened.', e))
+    .then(() => console.info('handler tapioca conversation maker finished'));
 };
