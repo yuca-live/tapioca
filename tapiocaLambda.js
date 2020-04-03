@@ -70,9 +70,8 @@ const createUsersGroups = (users) => {
   const groups = [];
   const shuffledUsers = shuffle(users);
 
-  const groupsCount = shuffledUsers.length / GROUP_SIZE;
+  const groupsCount = Math.floor(shuffledUsers.length / GROUP_SIZE);
   const remainder = shuffledUsers.length % GROUP_SIZE;
-
   let startIndex = 0;
   let endIndex = 0;
   for (let i = 0; i < groupsCount; i += 1) {
@@ -83,8 +82,6 @@ const createUsersGroups = (users) => {
 
   // Assign each of remainder users on a different group.
   if (remainder > 0) {
-    // user on endIndex position was already used on the last group, so we move to the next one.
-    endIndex += 1;
     for (let i = 0; i < remainder; i += 1) {
       groups[i].push(shuffledUsers[endIndex + i]);
     }
@@ -136,7 +133,8 @@ exports.handler = async () => {
       const slack = new Slack({ token: teamData.accessToken });
       const users = await getUsersFromChannel(slack, teamData.channelId);
       const allGroups = createUsersGroups(users);
-      console.info(`handler team=${teamData.teamId} has usersCount=${users.length} into groupsCount=${allGroups.length}`);
+      console.info(`handler team=${teamData.teamId} has usersCount=${users.length} into groupsCount=${allGroups.length}`
+        + ` groupSize=${GROUP_SIZE}`);
       handledTeams[teamData.teamId] = true;
       const groupJobs = allGroups.map((group) => createConversationAndPostMessage(slack, group));
       return Promise.all(groupJobs)
@@ -149,5 +147,5 @@ exports.handler = async () => {
 
   return Promise.all(jobs)
     .catch((e) => console.error('Something unexpected happened.', e))
-    .then(() => console.info('handler tapioca conversation maker finished.'));
+    .then(() => console.info('handler tapioca conversation maker finished'));
 };
