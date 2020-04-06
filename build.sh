@@ -20,8 +20,9 @@ TAPIOCA_INSTALL_DIR="$INSTALL_DIR/tapioca"
 mkdir "$TAPIOCA_INSTALL_DIR"
 cp -R "./node_modules" "$TAPIOCA_INSTALL_DIR"
 cp "./tapiocaLambda.js" "$TAPIOCA_INSTALL_DIR"
+cp "./constants.js" "$TAPIOCA_INSTALL_DIR"
 cd "$TAPIOCA_INSTALL_DIR" || exit
-zip -qr "../tapioca.zip" "tapiocaLambda.js" "node_modules"
+zip -qr "../tapioca.zip" "tapiocaLambda.js" "constants.js" "node_modules"
 cd "$CURRENT_DIR" || exit
 rm -rf "$TAPIOCA_INSTALL_DIR"
 echo " DONE."
