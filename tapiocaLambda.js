@@ -3,6 +3,7 @@ const AWS = require('aws-sdk');
 const { conversationStarters, defaultMessage } = require('./constants');
 
 const GROUP_SIZE = parseInt(process.env.SLACK_SIZE, 10);
+const CHANNEL_SIZE_LIMIT = parseInt(process.env.CHANNEL_SIZE_LIMIT, 10);
 
 const getCurrentCredentialsFile = async () => {
   const s3 = new AWS.S3({
@@ -32,7 +33,10 @@ const getRandom = (array) => {
 
 const getUsersFromChannel = async (slack, channelId) => {
   console.info(`getUsersFromChannel loading users from channelId=${channelId}`);
-  const membersData = await slack.conversations.members({ channel: channelId });
+  const membersData = await slack.conversations.members({
+    channel: channelId,
+    limit: CHANNEL_SIZE_LIMIT,
+  });
   if (!membersData.ok) {
     throw new Error(`could not find members for channelId=${channelId}`);
   }
