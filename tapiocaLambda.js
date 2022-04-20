@@ -32,7 +32,10 @@ const getRandom = (array) => {
 
 const getUsersFromChannel = async (slack, channelId) => {
   console.info(`getUsersFromChannel loading users from channelId=${channelId}`);
-  const membersData = await slack.conversations.members({ channel: channelId });
+  const membersData = await slack.conversations.members({
+    channel: channelId,
+    limit: 400
+  });
   if (!membersData.ok) {
     throw new Error(`could not find members for channelId=${channelId}`);
   }

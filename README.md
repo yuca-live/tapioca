@@ -30,7 +30,7 @@ It will require two lambda functions:
  As Trigger for this lambda add an API Gateway endpoint, and save this URL on your slack app webhook. 
 #### 2. `tapiocaLambda.js` 
  This function will require some kind of scheduled run, we use a CloudWatch Events/EventBridge, that is a CRON 
- to schedule when it should run. We use: `cron(30 20 ? * MON,WED,FRI *)`
+ to schedule when it should run. We use: `cron(30 20 ? * WED *)`
 
 ## How to build and run it?
 First things first, if you will use Lambda to deploy it, we suggest you to install and use 
